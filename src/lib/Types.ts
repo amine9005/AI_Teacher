@@ -4,3 +4,8 @@ export type User = {
   credits: number;
   subscriptionId?: string;
 };
+
+export type Messages = {
+  role: string;
+  content: string;
+};

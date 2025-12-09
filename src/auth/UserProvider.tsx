@@ -15,7 +15,7 @@ const UserProvider = () => {
     const getUserOrSet = async () => {
       if (user) {
         const data = await createUser({
-          name: user.displayName!,
+          name: user.displayName ? user.displayName : user.primaryEmail!,
           email: user.primaryEmail!,
         });
         setUserData(data);

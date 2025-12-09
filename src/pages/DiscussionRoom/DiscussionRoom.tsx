@@ -5,16 +5,23 @@ import type { Id } from "convex/_generated/dataModel";
 import { useEffect, useState } from "react";
 import { CoachingExpert } from "@/assets/Options";
 import DiscussionSection from "@/components/DiscussionRoom/DiscussionSection";
+import ChatSection from "@/components/DiscussionRoom/ChatSection";
+import type { Messages } from "@/lib/Types";
 
 const DiscussionRoom = () => {
   const { roomId } = useParams();
   const [expert, setExpert] = useState<
     (typeof CoachingExpert)[0] | undefined
   >();
+  // console.log(roomId);
 
   const data = useQuery(api.DiscussionRoom.GetDiscussionRoom, {
     id: roomId as Id<"DiscussionRoom">,
   });
+  const [conversation, setConversation] = useState<Messages[]>([
+    // { role: "assistant", content: "AI Msg" },
+    // { role: "user", content: "User Msg" },
+  ]);
 
   useEffect(() => {
     const getExpert = () => {
@@ -26,23 +33,19 @@ const DiscussionRoom = () => {
     getExpert();
   }, [data]);
 
-  console.log(data);
-  console.log(expert);
+  // console.log(data);
+  // console.log(expert);
 
   return (
     <div className="w-full mt-10 max-w-5xl">
       <h2 className="text-2xl font-bold">{data?.topic}</h2>
       <div className=" mt-5 lg:gap-4 grid grid-cols-1 lg:grid-cols-6">
-        <DiscussionSection expert={expert} />
-        <div className="max-lg:mt-10 col-span-2 flex flex-col justify-center items-center">
-          <div className="w-full bg-secondary rounded-4xl h-[60vh] flex flex-col justify-center items-center">
-            Chat Section
-          </div>
-          <h2 className="text-gray-400 mt-2 text-center text-sm">
-            Conversation/Feedback will be automatically generated at the end of
-            your conversation{" "}
-          </h2>
-        </div>
+        <DiscussionSection
+          expert={expert}
+          data={data}
+          setConversation={setConversation}
+        />
+        <ChatSection conversation={conversation} />
       </div>
     </div>
   );

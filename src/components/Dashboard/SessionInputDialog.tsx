@@ -40,9 +40,9 @@ const SessionInputDialog = ({
         topic: selectedTopic,
         expertName: selectedExpert,
       });
-      console.log(result);
+      // console.log(result);
       setOpenModal(true);
-      navigate(`/room/ ${result}`);
+      navigate(`/room/${result}`);
     } catch (error) {
       console.error(error);
     }
