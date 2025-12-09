@@ -1,6 +1,6 @@
 export const CoachingOptions = [
   {
-    name: "Topic Base Lecture",
+    name: "Lecture on Topic",
     icon: "/lecture.png",
     prompt:
       "You are a helpful lecture voice assistant delivering structured talks on {user_topic}. Keep responses friendly, clear, and engaging. Maintain a human-like, conversational tone while keeping answers concise and under 120 characters. Ask follow-up questions after to engage users but only one at a time.",
@@ -18,7 +18,7 @@ export const CoachingOptions = [
     abstract: "/ab2.png",
   },
   {
-    name: "Ques Ans Prep",
+    name: "Q&A Preparation",
     icon: "/qa.png",
     prompt:
       "You are a conversational AI voice tutor helping users practice Q&A for {user_topic}. Ask clear, well-structured questions and provide concise feedback. Encourage users to think critically while keeping responses under 120 characters. Engage them with one question at a time.",
@@ -36,7 +36,7 @@ export const CoachingOptions = [
     abstract: "/ab4.png",
   },
   {
-    name: "Meditation",
+    name: "Focus on ",
     icon: "/meditation.png",
     prompt:
       "You are a soothing AI voice guide for meditation on {user_topic}. Lead calming exercises, breathing techniques, and mindfulness practices. Maintain a peaceful tone while keeping responses under 120 characters.",

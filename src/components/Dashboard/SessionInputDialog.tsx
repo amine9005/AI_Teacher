@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useNavigate } from "react-router";
 const SessionInputDialog = ({
   children,
   option,
@@ -24,7 +25,9 @@ const SessionInputDialog = ({
   const [selectedExpert, setSelectedExpert] = useState<string>("");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [buttonLoading, setButtonLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
+  const navigate = useNavigate();
   const createDiscussionRoom = useMutation(
     api.DiscussionRoom.CreateDiscussionRoom
   );
@@ -38,6 +41,8 @@ const SessionInputDialog = ({
         expertName: selectedExpert,
       });
       console.log(result);
+      setOpenModal(true);
+      navigate(`/room/ ${result}`);
     } catch (error) {
       console.error(error);
     }
@@ -45,7 +50,7 @@ const SessionInputDialog = ({
   };
 
   return (
-    <Dialog>
+    <Dialog open={openModal} onOpenChange={setOpenModal}>
       <DialogTrigger>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>

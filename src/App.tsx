@@ -6,6 +6,9 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Protected from "./auth/Protected";
 import UserProvider from "./auth/UserProvider";
 import LandingPage from "./pages/LandingPage/LandingPage";
+import DiscussionRoom from "./pages/DiscussionRoom/DiscussionRoom";
+import Navbar from "./components/Navbar/Navbar";
+import Layout from "./pages/Layout/Layout";
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -21,12 +24,16 @@ export default function App() {
       <BrowserRouter>
         <StackProvider app={stackClientApp}>
           <StackTheme>
+            <Navbar />
             <Routes>
               <Route element={<UserProvider />}>
-                <Route path="/handler/*" element={<HandlerRoutes />} />
-                <Route path="/" element={<LandingPage />} />
-                <Route element={<Protected />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
+                <Route element={<Layout />}>
+                  <Route path="/handler/*" element={<HandlerRoutes />} />
+                  <Route path="/" element={<LandingPage />} />
+                  <Route element={<Protected />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/room/:roomId" element={<DiscussionRoom />} />
+                  </Route>
                 </Route>
               </Route>
             </Routes>
