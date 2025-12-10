@@ -23,7 +23,6 @@ type Props = {
       }
     | null
     | undefined;
-  //   conversation: Messages[];
   setConversation: React.Dispatch<React.SetStateAction<Messages[]>>;
 };
 
@@ -31,32 +30,74 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
   const [enableMic, setEnableMic] = useState(false);
   const recorder = useRef<RecordRTC>(null);
   const realtimeTranscriber = useRef<StreamingTranscriber>(null);
-  const [silenceTimeout, setSilenceTimeout] = useState<
-    NodeJS.Timeout | undefined
-  >();
   const generateToken = useAction(api.getToken.GetToken);
   const [transcript, setTranscript] = useState("");
-  const [userTurn, setUserTurn] = useState<boolean>(false);
   const [buttonLoading, setButtonLoading] = useState(false);
   const getResponse = useAction(api.aiResponse.GetResponse);
+  const option = CoachingOptions.find(
+    (option) => option.name === data?.coachingOption
+  );
+  const AGENT = option?.prompt.replace("{user_topic}", data?.topic as string);
+  const audioRef = useRef<MediaStream | null>(null);
+
+  // console.log("PROMPT ", AGENT);
+
+  const startRecording = async () => {
+    try {
+      recorder.current = new RecordRTC(audioRef.current!, {
+        type: "audio",
+        mimeType: "audio/webm;codecs=pcm",
+        recorderType: RecordRTC.StereoAudioRecorder,
+        timeSlice: 250,
+        desiredSampRate: 16000,
+        numberOfAudioChannels: 1,
+        bufferSize: 4096,
+        audioBitsPerSecond: 128000,
+        ondataavailable: async (blob) => {
+          if (!realtimeTranscriber.current) return;
+
+          try {
+            const buffer = await blob.arrayBuffer();
+            //   console.log(buffer);
+            realtimeTranscriber.current.sendAudio(buffer);
+          } catch (error) {
+            console.log("unable to send audio ", error);
+          }
+        },
+      });
+
+      recorder.current.startRecording();
+    } catch (error) {
+      console.error("Failed to record ", error);
+      setEnableMic(false);
+      setButtonLoading(false);
+    }
+  };
+
+  const getAudio = async () => {
+    if (typeof window !== "undefined" && typeof navigator !== "undefined") {
+      try {
+        audioRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+      } catch (error) {
+        console.error("Failed to get user media ", error);
+        setEnableMic(false);
+        setButtonLoading(false);
+        audioRef.current = null;
+        window.alert("Please enable your microphone and try again.");
+      }
+    }
+  };
 
   const say_hello = async () => {
-    setUserTurn(false);
-
-    const option = CoachingOptions.find(
-      (option) => option.name === data?.coachingOption
-    );
-    const PROMPT = option?.prompt.replace(
-      "{user_topic}",
-      data?.topic as string
-    );
-    console.log("PROMPT ", PROMPT);
-
     const response = await getResponse({
-      prompt: PROMPT as string,
+      prompt: "",
+      agent: AGENT as string,
     });
     if (!response) {
       console.error("Failed to get response");
+      handle_disconnect();
       return;
     }
     // console.log("response: ", response);
@@ -65,13 +106,18 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
       { role: "assistant", content: response.content as string },
     ]);
     // console.log("ai response: ", aiResponse);
-    setUserTurn(true);
     setButtonLoading(false);
     setEnableMic(true);
   };
 
   const handle_connect = async () => {
     setButtonLoading(true);
+
+    await getAudio();
+
+    if (!audioRef.current) {
+      return;
+    }
 
     const token = await generateToken();
     if (!token) {
@@ -83,10 +129,15 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
     realtimeTranscriber.current = new StreamingTranscriber({
       token,
       sampleRate: 16000,
+      endOfTurnConfidenceThreshold: 0.85,
     });
 
+    startRecording();
+
+    await say_hello();
+
     realtimeTranscriber.current.on("open", async () => {
-      await say_hello();
+      console.log("Session opened");
     });
 
     realtimeTranscriber.current.on("error", (error) => {
@@ -97,27 +148,28 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
       console.log("Session closed:", code, reason)
     );
 
-    realtimeTranscriber.current.on("turn", async (turn) => {
-      if (!turn.transcript) {
-        return;
-      }
-      //   console.log("Transcript:", turn);
-      if (turn.transcript) {
-        setTranscript(turn.transcript);
-      }
+    realtimeTranscriber.current.on(
+      "turn",
+      async (turn) => {
+        if (!turn.transcript) {
+          return;
+        }
+        //
+        if (turn.transcript) {
+          setTranscript(turn.transcript);
+        }
 
-      //   console.log(turn);
-      if (turn.end_of_turn) {
-        // console.log("end of turn");
-        setConversation((prev) => [
-          ...prev,
-          { role: "user", content: turn.transcript },
-        ]);
+        if (turn.end_of_turn) {
+          // setUserMessage(userMessage + " " + turn.transcript);
+          setConversation((prev) => [
+            ...prev,
+            { role: "user", content: turn.transcript },
+          ]);
 
-        if (!userTurn) {
-          //   console.log("awaiting ai response");
-          //   console.log("prompt: ", turn.transcript);
-          const response = await getResponse({ prompt: turn.transcript });
+          const response = await getResponse({
+            prompt: turn.transcript,
+            agent: AGENT as string,
+          });
 
           if (!response) {
             console.error("Failed to get response");
@@ -127,76 +179,29 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
             ...prev,
             { role: "assistant", content: response.content as string },
           ]);
-          setUserTurn(true);
-          //   console.log("response: ", response);
-
-          //   console.log("ai response: ", aiResponse);
         }
-        // console.log("user Done speaking");
-        // conversation.push({ role: "user", content: turn.transcript });
       }
-    });
+      //   console.log("Transcript:", turn);
+    );
 
     try {
       await realtimeTranscriber.current.connect();
     } catch (error) {
       console.log("Error connecting:", error);
     }
-
-    if (typeof window !== "undefined" && typeof navigator !== "undefined") {
-      //   setEnableMic(true);
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((stream) => {
-          recorder.current = new RecordRTC(stream, {
-            type: "audio",
-            mimeType: "audio/webm;codecs=pcm",
-            recorderType: RecordRTC.StereoAudioRecorder,
-            timeSlice: 250,
-            desiredSampRate: 16000,
-            numberOfAudioChannels: 1,
-            bufferSize: 4096,
-            audioBitsPerSecond: 128000,
-            ondataavailable: async (blob) => {
-              if (!realtimeTranscriber.current) return;
-              // Reset the silence detection timer on audio input
-              clearTimeout(silenceTimeout);
-
-              const buffer = await blob.arrayBuffer();
-              //   console.log(buffer);
-              console.log(userTurn);
-
-              if (enableMic) {
-                console.log("Transcribing ");
-                realtimeTranscriber.current.sendAudio(buffer);
-              }
-
-              //console.log(buffer)
-
-              // Restart the silence detection timer
-              setSilenceTimeout(
-                setTimeout(() => {
-                  setUserTurn(false);
-
-                  //   console.log("User stopped talking");
-                  // Handle user stopped talking (e.g., send final transcript, stop recording, etc.)
-                }, 3000)
-              );
-            },
-          });
-          recorder.current?.startRecording();
-        })
-        .catch((err) => console.error(err));
-    }
   };
 
   const handle_disconnect = async () => {
     if (recorder.current) {
+      if (audioRef.current) {
+        audioRef.current.getTracks().forEach((track) => track.stop());
+      }
       setButtonLoading(true);
       recorder.current.stopRecording();
       await realtimeTranscriber.current?.close();
       //   console.log("conversation: ", conversation);
       recorder.current = null;
+
       setEnableMic(false);
       setButtonLoading(false);
     }
