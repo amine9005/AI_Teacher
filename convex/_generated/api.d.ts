@@ -11,6 +11,7 @@
 import type * as DiscussionRoom from "../DiscussionRoom.js";
 import type * as aiResponse from "../aiResponse.js";
 import type * as getToken from "../getToken.js";
+import type * as textToSpeech from "../textToSpeech.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   DiscussionRoom: typeof DiscussionRoom;
   aiResponse: typeof aiResponse;
   getToken: typeof getToken;
+  textToSpeech: typeof textToSpeech;
   users: typeof users;
 }>;
 

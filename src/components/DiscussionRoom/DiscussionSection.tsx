@@ -10,6 +10,9 @@ import { api } from "../../../convex/_generated/api";
 import { Loader2 } from "lucide-react";
 import type { Id } from "convex/_generated/dataModel";
 import type { Messages } from "@/lib/Types";
+// import type { LiveServerMessage } from "@google/genai";
+// import Speaker from "speaker";
+
 type Props = {
   expert: (typeof CoachingExpert)[0] | undefined;
   data:
@@ -27,18 +30,38 @@ type Props = {
 };
 
 const DiscussionSection = ({ expert, data, setConversation }: Props) => {
+  const getResponse = useAction(api.aiResponse.GetResponse);
+  const textToSpeech = useAction(api.textToSpeech.TextToSpeech);
   const [enableMic, setEnableMic] = useState(false);
+  const [buttonLoading, setButtonLoading] = useState(false);
   const recorder = useRef<RecordRTC>(null);
   const realtimeTranscriber = useRef<StreamingTranscriber>(null);
   const generateToken = useAction(api.getToken.GetToken);
   const [transcript, setTranscript] = useState("");
-  const [buttonLoading, setButtonLoading] = useState(false);
-  const getResponse = useAction(api.aiResponse.GetResponse);
   const option = CoachingOptions.find(
     (option) => option.name === data?.coachingOption
   );
   const AGENT = option?.prompt.replace("{user_topic}", data?.topic as string);
   const audioRef = useRef<MediaStream | null>(null);
+  // const audioQueue: Buffer[] = [];
+
+  // const speaker = useRef<Speaker | null>(null);
+
+  const generateAudioMessage = async (text: string) => {
+    console.log("awaiting audio");
+    const chunk = await textToSpeech({
+      prompt: text,
+      voice: "Kore",
+    });
+    if (!chunk) {
+      console.log("No audio generated");
+      return;
+    }
+    const audioBlob = new Blob([chunk], { type: "audio/webm" });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+  };
 
   // console.log("PROMPT ", AGENT);
 
@@ -100,6 +123,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
       handle_disconnect();
       return;
     }
+    generateAudioMessage(response.content as string);
     // console.log("response: ", response);
     setConversation((prev) => [
       ...prev,
@@ -175,6 +199,8 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
             console.error("Failed to get response");
             return;
           }
+
+          await generateAudioMessage(response.content as string);
           setConversation((prev) => [
             ...prev,
             { role: "assistant", content: response.content as string },
@@ -226,7 +252,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
         <Button
           disabled={buttonLoading}
           variant={"destructive"}
-          className="w-28 mt-5"
+          className="w-32 mt-5"
           onClick={() => handle_disconnect()}
         >
           Disconnect
@@ -235,7 +261,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
       ) : (
         <Button
           disabled={buttonLoading}
-          className="w-28 mt-5"
+          className="w-32 mt-5"
           onClick={() => handle_connect()}
         >
           Connect
