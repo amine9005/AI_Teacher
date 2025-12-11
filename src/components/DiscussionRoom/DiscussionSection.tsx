@@ -4,7 +4,7 @@ import { UserButton } from "@stackframe/react";
 import { Button } from "@/components/ui/button";
 import RecordRTC from "recordrtc";
 import { StreamingTranscriber } from "assemblyai";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 
 import { api } from "../../../convex/_generated/api";
 import { Loader2 } from "lucide-react";
@@ -26,10 +26,18 @@ type Props = {
       }
     | null
     | undefined;
+  conversation: Messages[];
+  setEnableFeedbackNotes: React.Dispatch<React.SetStateAction<boolean>>;
   setConversation: React.Dispatch<React.SetStateAction<Messages[]>>;
 };
 
-const DiscussionSection = ({ expert, data, setConversation }: Props) => {
+const DiscussionSection = ({
+  expert,
+  data,
+  conversation,
+  setEnableFeedbackNotes,
+  setConversation,
+}: Props) => {
   const getResponse = useAction(api.aiResponse.GetResponse);
   const textToSpeech = useAction(api.textToSpeech.TextToSpeech);
   const [enableMic, setEnableMic] = useState(false);
@@ -43,24 +51,32 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
   );
   const AGENT = option?.prompt.replace("{user_topic}", data?.topic as string);
   const audioRef = useRef<MediaStream | null>(null);
-  // const audioQueue: Buffer[] = [];
-
-  // const speaker = useRef<Speaker | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
+  const audioPlayer = useRef<HTMLAudioElement | null>(null);
+  const saveConversation = useMutation(api.DiscussionRoom.SaveConversation);
 
   const generateAudioMessage = async (text: string) => {
     console.log("awaiting audio");
-    const chunk = await textToSpeech({
+
+    const audioBuffer = await textToSpeech({
       prompt: text,
-      voice: "Kore",
+      voice: "af_bella",
     });
-    if (!chunk) {
+    if (!audioBuffer) {
       console.log("No audio generated");
       return;
     }
-    const audioBlob = new Blob([chunk], { type: "audio/webm" });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audio.play();
+    const audioBlob = new Blob([audioBuffer], { type: "audio/wav" });
+    setAudioUrl(URL.createObjectURL(audioBlob));
+
+    console.log("audio ref ", audioPlayer.current);
+
+    if (audioPlayer.current) {
+      audioPlayer.current.src = audioUrl!;
+    }
+
+    // const audio = new Audio(audioUrl);
+    // audio.play();
   };
 
   // console.log("PROMPT ", AGENT);
@@ -123,7 +139,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
       handle_disconnect();
       return;
     }
-    generateAudioMessage(response.content as string);
+    await generateAudioMessage(response.content as string);
     // console.log("response: ", response);
     setConversation((prev) => [
       ...prev,
@@ -144,9 +160,10 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
     }
 
     const token = await generateToken();
-    if (!token) {
+
+    if (token.length === 0) {
       console.error("Failed to get token");
-      setButtonLoading(false);
+      handle_disconnect();
       return;
     }
 
@@ -178,6 +195,9 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
         if (!turn.transcript) {
           return;
         }
+        if (audioPlayer.current) {
+          audioPlayer.current.pause();
+        }
         //
         if (turn.transcript) {
           setTranscript(turn.transcript);
@@ -201,6 +221,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
           }
 
           await generateAudioMessage(response.content as string);
+
           setConversation((prev) => [
             ...prev,
             { role: "assistant", content: response.content as string },
@@ -219,18 +240,29 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
 
   const handle_disconnect = async () => {
     if (recorder.current) {
-      if (audioRef.current) {
-        audioRef.current.getTracks().forEach((track) => track.stop());
-      }
-      setButtonLoading(true);
       recorder.current.stopRecording();
-      await realtimeTranscriber.current?.close();
-      //   console.log("conversation: ", conversation);
       recorder.current = null;
-
-      setEnableMic(false);
-      setButtonLoading(false);
     }
+    if (audioRef.current) {
+      audioRef.current.getTracks().forEach((track) => track.stop());
+    }
+    setButtonLoading(true);
+    await realtimeTranscriber.current?.close();
+    console.log("conversation: ", conversation);
+    await handle_save_conversation();
+
+    setEnableMic(false);
+    setButtonLoading(false);
+    setEnableFeedbackNotes(true);
+  };
+
+  // console.log("conversation: ", conversation);
+
+  const handle_save_conversation = async () => {
+    await saveConversation({
+      id: data!._id!,
+      conversation: conversation,
+    });
   };
   return (
     <div className="lg:col-span-4 flex flex-col justify-center items-center">
@@ -243,7 +275,7 @@ const DiscussionSection = ({ expert, data, setConversation }: Props) => {
           className="w-[100px] h-[100px] rounded-full animate-pulse "
         />
         <div className="text-gray-500">{expert?.name}</div>
-
+        <audio src={audioUrl} ref={audioPlayer} autoPlay />
         <div className="absolute bottom-10 right-10 p-5 px-10 bg-gray-200 rounded-lg">
           <UserButton />
         </div>

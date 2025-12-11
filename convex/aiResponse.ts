@@ -34,6 +34,39 @@ export const GetResponse = action({
           content: agent,
         },
       ],
+      temperature: 0.7,
+    });
+
+    // console.log("response from db: ", JSON.stringify(response));
+
+    return chatCompletion.choices[0].message;
+  },
+});
+
+export const GenerateNotes = action({
+  args: {
+    conversation: v.any(),
+    agent: v.string(),
+  },
+
+  handler: async (_, { conversation, agent }) => {
+    // console.log("agent: ", agent);
+    // console.log("prompt: ", prompt);
+    const conversationAsString = JSON.stringify(conversation);
+    const chatCompletion = await client.chat.completions.create({
+      // model: "deepseek-ai/DeepSeek-V3.2:novita",
+      model: "gemma-3-27b-it",
+      messages: [
+        {
+          role: "user",
+          content: conversationAsString,
+        },
+        {
+          role: "assistant",
+          content: agent,
+        },
+      ],
+      temperature: 0.7,
     });
 
     // console.log("response from db: ", JSON.stringify(response));

@@ -1,10 +1,38 @@
 import type { Messages } from "@/lib/Types";
+import { Button } from "../ui/button";
+import { useAction } from "convex/react";
+import { api } from "@convex/_generated/api";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 type Props = {
   conversation: Messages[];
+  enableFeedbackNotes: boolean;
+  summaryPrompt: string;
   // setConversation:React.Dispatch<React.SetStateAction<Messages[]>>
 };
-const ChatSection = ({ conversation }: Props) => {
+
+const ChatSection = ({
+  conversation,
+  enableFeedbackNotes,
+  summaryPrompt,
+}: Props) => {
+  const generateNotes = useAction(api.aiResponse.GenerateNotes);
+  const [loading, setLoading] = useState(false);
+  const generate_feedback_notes = async () => {
+    setLoading(true);
+    try {
+      const response = await generateNotes({
+        conversation: JSON.stringify(conversation),
+        agent: summaryPrompt,
+      });
+      console.log("response: ", response);
+    } catch (error) {
+      console.debug(error);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="max-lg:mt-10 col-span-2 flex flex-col justify-center items-center">
       <div className="w-full bg-secondary rounded-4xl h-[60vh] flex flex-col p-4 overflow-y-scroll">
@@ -22,10 +50,21 @@ const ChatSection = ({ conversation }: Props) => {
           </div>
         ))}
       </div>
-      <h2 className="text-gray-400 mt-2 text-center text-sm">
-        Conversation/Feedback will be automatically generated at the end of your
-        conversation{" "}
-      </h2>
+      {enableFeedbackNotes ? (
+        <Button
+          className="mt-3"
+          disabled={loading}
+          onClick={() => generate_feedback_notes()}
+        >
+          Generate Feedback/Notes
+          {loading && <Loader2 className="animate-spin size-5" />}
+        </Button>
+      ) : (
+        <h2 className="text-gray-400 mt-2 text-center text-sm">
+          Conversation/Feedback will be automatically generated at the end of
+          your conversation{" "}
+        </h2>
+      )}
     </div>
   );
 };

@@ -24,3 +24,16 @@ export const GetDiscussionRoom = query({
     return room;
   },
 });
+
+export const SaveConversation = mutation({
+  args: {
+    id: v.id("DiscussionRoom"),
+    conversation: v.any(),
+  },
+  handler: async (ctx, { id, conversation }) => {
+    const room = await ctx.db.patch(id, {
+      conversation,
+    });
+    return room;
+  },
+});

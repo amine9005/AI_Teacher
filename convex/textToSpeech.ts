@@ -1,42 +1,10 @@
 "use node";
-import { GoogleGenAI, Modality } from "@google/genai";
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const model = "gemini-2.5-flash-native-audio-preview-09-2025";
-const responseQueue: any[] = [];
-const audioQueue: any = [];
+import { InferenceClient } from "@huggingface/inference";
 
-async function waitMessage() {
-  while (responseQueue.length === 0) {
-    await new Promise((resolve) => setImmediate(resolve));
-  }
-  return responseQueue.shift();
-}
-
-async function messageLoop() {
-  // Puts incoming messages in the audio queue.
-  while (true) {
-    const message = await waitMessage();
-    if (message.serverContent && message.serverContent.interrupted) {
-      // Empty the queue on interruption to stop playback
-      audioQueue.length = 0;
-      continue;
-    }
-    if (
-      message.serverContent &&
-      message.serverContent.modelTurn &&
-      message.serverContent.modelTurn.parts
-    ) {
-      for (const part of message.serverContent.modelTurn.parts) {
-        if (part.inlineData && part.inlineData.data) {
-          audioQueue.push(Buffer.from(part.inlineData.data, "base64"));
-        }
-      }
-    }
-  }
-}
+const client = new InferenceClient(process.env.HF_TOKEN);
 
 export const TextToSpeech = action({
   args: {
@@ -45,43 +13,22 @@ export const TextToSpeech = action({
   },
   handler: async (_, { prompt, voice }) => {
     console.log("textToSpeech");
-    const config = {
-      responseModalities: [Modality.AUDIO],
-      systemInstruction:
-        "You are a helpful and friendly AI assistant and your job is to read the User Text in a clear voice. IMPORTANT Don't add any other speech ONLY READ THE MESSAGE",
-      speechConfig: {
-        voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
-      },
-      outputAudioTranscription: {},
-    };
-    const session = await ai.live.connect({
-      model: model,
-      callbacks: {
-        onopen: function () {
-          console.debug("Opened a text to speech session");
-        },
-        onmessage: function (message) {
-          responseQueue.push(message);
-        },
-        onerror: function (e) {
-          console.debug("Error:", e.message);
-        },
-        onclose: function (e) {
-          console.debug("Close:", e.reason);
-        },
-      },
-      config: config,
+    const audioBlob = await client.textToSpeech({
+      provider: "replicate",
+      model: "hexgrad/Kokoro-82M",
+      inputs: prompt
+        .replace(
+          /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+          ""
+        )
+        .replace(/[|;$%@"<>()+'`,*]/g, ""),
+      voice: voice,
     });
 
-    // console.debug("Session started");
-    // Send content...
-    console.log("prompt: ", prompt);
-    session.sendClientContent({ turns: prompt, turnComplete: true });
-    messageLoop();
+    const arrayBuffer = await audioBlob.arrayBuffer();
 
-    console.log("audioQueue: ", audioQueue);
-    session.close();
-
-    return audioQueue[0];
+    return arrayBuffer;
   },
 });
+
+// Uncaught ProviderApiError: Failed to perform inference: - input.voice: voice must be one of the following: "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "bf_alice", "bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis", "ff_siwis", "hf_alpha", "hf_beta", "hm_omega", "hm_psi", "if_sara", "im_nicola", "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo", "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi", "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang"
