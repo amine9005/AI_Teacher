@@ -9,12 +9,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Button } from "../ui/button";
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useNavigate } from "react-router";
+import { UserContext } from "@/context/userContext";
 const SessionInputDialog = ({
   children,
   option,
@@ -26,6 +27,7 @@ const SessionInputDialog = ({
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [buttonLoading, setButtonLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const { userData } = useContext(UserContext);
 
   const navigate = useNavigate();
   const createDiscussionRoom = useMutation(
@@ -35,10 +37,15 @@ const SessionInputDialog = ({
   const handleCreateDiscussionRoom = async () => {
     setButtonLoading(true);
     try {
+      if (!userData) {
+        console.log("user not logged in");
+        return;
+      }
       const result = await createDiscussionRoom({
         coachingOption: option.name,
         topic: selectedTopic,
         expertName: selectedExpert,
+        createdBy: userData._id,
       });
       // console.log(result);
       setOpenModal(true);

@@ -6,12 +6,14 @@ export const CreateDiscussionRoom = mutation({
     coachingOption: v.string(),
     topic: v.string(),
     expertName: v.string(),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, { coachingOption, topic, expertName }) => {
+  handler: async (ctx, { coachingOption, topic, expertName, createdBy }) => {
     const room = await ctx.db.insert("DiscussionRoom", {
       coachingOption,
       topic,
       expertName,
+      createdBy,
     });
     return room;
   },
@@ -35,5 +37,30 @@ export const SaveConversation = mutation({
       conversation,
     });
     return room;
+  },
+});
+
+export const SaveSummary = mutation({
+  args: {
+    id: v.id("DiscussionRoom"),
+    summary: v.any(),
+  },
+  handler: async (ctx, { id, summary }) => {
+    const room = await ctx.db.patch(id, {
+      summary,
+    });
+    return room;
+  },
+});
+
+export const GetUserDiscussionRooms = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, { id }) => {
+    const rooms = await ctx.db
+      .query("DiscussionRoom")
+      .filter((room) => room.eq(room.field("createdBy"), id))
+      .order("desc")
+      .collect();
+    return rooms;
   },
 });

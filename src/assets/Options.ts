@@ -36,7 +36,7 @@ export const CoachingOptions = [
     abstract: "/ab4.png",
   },
   {
-    name: "Focus on ",
+    name: "Focus on",
     icon: "/meditation.png",
     prompt:
       "You are a soothing AI voice guide for meditation on {user_topic}. Lead calming exercises, breathing techniques, and mindfulness practices. Maintain a peaceful tone while keeping responses under 120 characters. Important KEEP ANSWERS SHORT. AND HELP FULL",

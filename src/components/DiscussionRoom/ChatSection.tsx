@@ -1,9 +1,11 @@
 import type { Messages } from "@/lib/Types";
 import { Button } from "../ui/button";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import type { Id } from "@convex/_generated/dataModel";
+import { useParams } from "react-router";
 
 type Props = {
   conversation: Messages[];
@@ -19,6 +21,8 @@ const ChatSection = ({
 }: Props) => {
   const generateNotes = useAction(api.aiResponse.GenerateNotes);
   const [loading, setLoading] = useState(false);
+  const saveSummary = useMutation(api.DiscussionRoom.SaveSummary);
+  const { roomId } = useParams();
   const generate_feedback_notes = async () => {
     setLoading(true);
     try {
@@ -26,7 +30,11 @@ const ChatSection = ({
         conversation: JSON.stringify(conversation),
         agent: summaryPrompt,
       });
-      console.log("response: ", response);
+
+      await saveSummary({
+        summary: response.content as string,
+        id: roomId as Id<"DiscussionRoom">,
+      });
     } catch (error) {
       console.debug(error);
     }
@@ -34,7 +42,7 @@ const ChatSection = ({
   };
 
   return (
-    <div className="max-lg:mt-10 col-span-2 flex flex-col justify-center items-center">
+    <div className="max-lg:mt-10 col-span-2">
       <div className="w-full bg-secondary rounded-4xl h-[60vh] flex flex-col p-4 overflow-y-scroll">
         {conversation.map((item, idx) => (
           <div
@@ -51,14 +59,16 @@ const ChatSection = ({
         ))}
       </div>
       {enableFeedbackNotes ? (
-        <Button
-          className="mt-3"
-          disabled={loading}
-          onClick={() => generate_feedback_notes()}
-        >
-          Generate Feedback/Notes
-          {loading && <Loader2 className="animate-spin size-5" />}
-        </Button>
+        <div className="flex items-center justify-center w-full">
+          <Button
+            className="mt-5  w-full"
+            disabled={loading}
+            onClick={() => generate_feedback_notes()}
+          >
+            Generate Feedback/Notes
+            {loading && <Loader2 className="animate-spin size-5" />}
+          </Button>
+        </div>
       ) : (
         <h2 className="text-gray-400 mt-2 text-center text-sm">
           Conversation/Feedback will be automatically generated at the end of

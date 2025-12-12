@@ -18,8 +18,8 @@ export const CreateUser = mutation({
         email,
         credits: 50000,
       };
-      await ctx.db.insert("users", data);
-      return data;
+      const user = await ctx.db.insert("users", data);
+      return { ...data, _id: user };
     }
 
     return userData[0];
