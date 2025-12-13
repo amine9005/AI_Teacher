@@ -1,11 +1,12 @@
 import type { Messages } from "@/lib/Types";
-import { Button } from "../ui/button";
+import { Button } from "../ui/atoms/button/button";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Id } from "@convex/_generated/dataModel";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
+import Markdown from "react-markdown";
 
 type Props = {
   conversation: Messages[];
@@ -23,6 +24,7 @@ const ChatSection = ({
   const [loading, setLoading] = useState(false);
   const saveSummary = useMutation(api.DiscussionRoom.SaveSummary);
   const { roomId } = useParams();
+  const navigate = useNavigate();
   const generate_feedback_notes = async () => {
     setLoading(true);
     try {
@@ -35,6 +37,8 @@ const ChatSection = ({
         summary: response.content as string,
         id: roomId as Id<"DiscussionRoom">,
       });
+      console.log(response);
+      navigate(`/summary/${roomId}`);
     } catch (error) {
       console.debug(error);
     }
@@ -44,7 +48,13 @@ const ChatSection = ({
   return (
     <div className="max-lg:mt-10 col-span-2">
       <div className="w-full bg-secondary rounded-4xl h-[60vh] flex flex-col p-4 overflow-y-scroll">
-        {conversation.map((item, idx) => (
+        {!conversation ||
+          (conversation.length === 0 && (
+            <h2 className="my-auto text-center text-md">
+              Press the connect button to start a conversation
+            </h2>
+          ))}
+        {conversation?.map((item, idx) => (
           <div
             className={`flex mt-2 ${item.role === "user" ? "justify-end" : ""}`}
             key={idx}
@@ -53,12 +63,14 @@ const ChatSection = ({
               key={idx}
               className={`flex w-fit p-4 rounded-2xl max-w-[85%]  ${item.role === "user" ? " bg-blue-400" : " bg-gray-300"}`}
             >
-              {item.content}
+              <div className="reset-tw">
+                <Markdown>{item.content}</Markdown>
+              </div>
             </h2>
           </div>
         ))}
       </div>
-      {enableFeedbackNotes ? (
+      {enableFeedbackNotes && (
         <div className="flex items-center justify-center w-full">
           <Button
             className="mt-5  w-full"
@@ -69,11 +81,6 @@ const ChatSection = ({
             {loading && <Loader2 className="animate-spin size-5" />}
           </Button>
         </div>
-      ) : (
-        <h2 className="text-gray-400 mt-2 text-center text-sm">
-          Conversation/Feedback will be automatically generated at the end of
-          your conversation{" "}
-        </h2>
       )}
     </div>
   );

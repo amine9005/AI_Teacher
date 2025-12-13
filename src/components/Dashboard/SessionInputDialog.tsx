@@ -8,9 +8,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/atoms/textarea/textarea";
 import { useContext, useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/atoms/button/button";
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";

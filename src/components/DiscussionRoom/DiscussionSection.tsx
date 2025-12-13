@@ -1,7 +1,7 @@
 import { CoachingOptions, type CoachingExpert } from "@/assets/Options";
 import { useRef, useState } from "react";
 import { UserButton } from "@stackframe/react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/atoms/button/button";
 import RecordRTC from "recordrtc";
 import { StreamingTranscriber } from "assemblyai";
 import { useAction, useMutation } from "convex/react";
@@ -10,6 +10,7 @@ import { api } from "../../../convex/_generated/api";
 import { Loader2 } from "lucide-react";
 import type { Id } from "convex/_generated/dataModel";
 import type { Messages } from "@/lib/Types";
+import useUpdateUserTokens from "@/hooks/useUpdateUserTokens";
 // import type { LiveServerMessage } from "@google/genai";
 // import Speaker from "speaker";
 
@@ -54,6 +55,7 @@ const DiscussionSection = ({
   const [audioUrl, setAudioUrl] = useState<string | undefined>(undefined);
   const audioPlayer = useRef<HTMLAudioElement | null>(null);
   const saveConversation = useMutation(api.DiscussionRoom.SaveConversation);
+  const { updateUserTokens } = useUpdateUserTokens();
 
   const generateAudioMessage = async (text: string) => {
     console.log("awaiting audio");
@@ -139,11 +141,12 @@ const DiscussionSection = ({
       handle_disconnect();
       return;
     }
-    await generateAudioMessage(response.content as string);
+    updateUserTokens(response.content ? response.content : "");
+    await generateAudioMessage(response.content ? response.content : "");
     // console.log("response: ", response);
     setConversation((prev) => [
       ...prev,
-      { role: "assistant", content: response.content as string },
+      { role: "assistant", content: response.content ? response.content : "" },
     ]);
     // console.log("ai response: ", aiResponse);
     setButtonLoading(false);
@@ -205,6 +208,7 @@ const DiscussionSection = ({
 
         if (turn.end_of_turn) {
           // setUserMessage(userMessage + " " + turn.transcript);
+          updateUserTokens(turn.transcript);
           setConversation((prev) => [
             ...prev,
             { role: "user", content: turn.transcript },
@@ -220,11 +224,14 @@ const DiscussionSection = ({
             return;
           }
 
-          await generateAudioMessage(response.content as string);
-
+          await generateAudioMessage(response.content ? response.content : "");
+          updateUserTokens(response.content ? response.content : "");
           setConversation((prev) => [
             ...prev,
-            { role: "assistant", content: response.content as string },
+            {
+              role: "assistant",
+              content: response.content ? response.content : "",
+            },
           ]);
         }
       }

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/atoms/button/button";
 import { useNavigate } from "react-router";
 
 export default function Hero() {

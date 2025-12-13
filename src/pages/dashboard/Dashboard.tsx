@@ -1,6 +1,6 @@
 import Features from "@/components/Dashboard/Features";
-import Feedback from "@/components/Dashboard/Feedback";
-import History from "@/components/Dashboard/History";
+import Feedback from "@/components/Dashboard/Feedback.render";
+import History from "@/components/Dashboard/History.render";
 
 const Dashboard = () => {
   return (

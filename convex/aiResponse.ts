@@ -9,9 +9,18 @@ import { OpenAI } from "openai";
 // });
 
 const client = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPEN_ROUTER_API_KEY,
+  // defaultHeaders: {
+  //   "HTTP-Referer": "<YOUR_SITE_URL>", // Optional. Site URL for rankings on openrouter.ai.
+  //   "X-Title": "<YOUR_SITE_NAME>", // Optional. Site title for rankings on openrouter.ai.
+  // },
 });
+
+// const client = new OpenAI({
+//   apiKey: process.env.GEMINI_API_KEY,
+//   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+// });
 
 export const GetResponse = action({
   args: {
@@ -22,8 +31,8 @@ export const GetResponse = action({
     // console.log("agent: ", agent);
     // console.log("prompt: ", prompt);
     const chatCompletion = await client.chat.completions.create({
-      // model: "deepseek-ai/DeepSeek-V3.2:novita",
-      model: "gemma-3-27b-it",
+      model: "tngtech/deepseek-r1t2-chimera:free",
+      // model: "gemma-3-27b-it",
       messages: [
         {
           role: "user",
@@ -54,8 +63,8 @@ export const GenerateNotes = action({
     // console.log("prompt: ", prompt);
     const conversationAsString = JSON.stringify(conversation);
     const chatCompletion = await client.chat.completions.create({
-      // model: "deepseek-ai/DeepSeek-V3.2:novita",
-      model: "gemma-3-27b-it",
+      model: "tngtech/deepseek-r1t2-chimera:free",
+      // model: "gemma-3-27b-it",
       messages: [
         {
           role: "user",

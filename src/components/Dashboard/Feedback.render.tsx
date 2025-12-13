@@ -1,4 +1,4 @@
-import FeedbackItems from "./FeedbackItems.render";
+import FeedbackItems from "./FeedbackItems.action";
 import useGetHistory from "@/hooks/useGetHistory.hook";
 
 const Feedback = () => {

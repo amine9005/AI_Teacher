@@ -1,5 +1,5 @@
 import { useUser } from "@stackframe/react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/atoms/button/button";
 import { CoachingOptions } from "@/assets/Options";
 import { BlurFade } from "../ui/blur-fade";
 import SessionInputDialog from "./SessionInputDialog";

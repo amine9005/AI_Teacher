@@ -1,5 +1,5 @@
 import useGetHistory from "@/hooks/useGetHistory.hook";
-import HistoryItems from "./HistoryItems.render";
+import HistoryItems from "./HistoryItems.action";
 
 const History = () => {
   const { history } = useGetHistory();

@@ -9,6 +9,7 @@ import LandingPage from "./pages/LandingPage/LandingPage";
 import DiscussionRoom from "./pages/DiscussionRoom/DiscussionRoom";
 import Navbar from "./components/Navbar/Navbar";
 import Layout from "./pages/Layout/Layout";
+import ViewSummary from "./pages/ViewSummary/ViewSummary.page";
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -33,6 +34,7 @@ export default function App() {
                   <Route element={<Protected />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/room/:roomId" element={<DiscussionRoom />} />
+                    <Route path="/summary/:roomId" element={<ViewSummary />} />
                   </Route>
                 </Route>
               </Route>
